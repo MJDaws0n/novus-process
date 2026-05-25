@@ -5,8 +5,6 @@
 
 module process_linux_amd64;
 
-import ../std;
-import ../file_io;
 
 // ---------------------------------------------------------------------------
 // Wait for child process - wait4(pid, &status, 0, NULL)

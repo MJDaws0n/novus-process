@@ -1,14 +1,14 @@
 // ---------------------------------------------------------------------------
-// process/darwin_arm64 - Process utilities for macOS Apple Silicon
+// process/linux_arm64 - Process utilities for Linux ARM64 (aarch64)
+// Uses clone(SIGCHLD,0,0,0,0) instead of fork, dup3 instead of dup2,
+// wait4 (compat syscall 260)
 // ---------------------------------------------------------------------------
 
-module process_darwin_arm64;
+module process_linux_arm64;
 
-import ../std;
-import ../file_io;
 
 // ---------------------------------------------------------------------------
-// Wait for child process
+// Wait for child process - wait4(pid, &status, 0, NULL)
 // ---------------------------------------------------------------------------
 
 fn wait_pid(pid: i32) -> i32 {
@@ -18,7 +18,7 @@ fn wait_pid(pid: i32) -> i32 {
     mov(x1, sa);
     mov(x2, 0);
     mov(x3, 0);
-    mov(x16, 0x2000007);
+    mov(x8, 260);      // SYS_wait4
     syscall();
     return st;
 }
@@ -112,27 +112,19 @@ fn capture_output_full(exe: str, argv: []u64, max_len: i32) -> str {
 }
 
 // ---------------------------------------------------------------------------
-// macOS file picker dialog via osascript
+// Linux file picker dialog (no osascript on Linux — returns empty)
 // ---------------------------------------------------------------------------
 
 fn pick_file_dialog(file_type: str) -> str {
-    let a0: str = "/usr/bin/osascript";
-    let a1: str = "-e";
-    let a2: str = "POSIX path of (choose file of type {\"" + file_type + "\"})";
-    let av: []u64 = [ptr(a0), ptr(a1), ptr(a2), 0];
-    return capture_output(a0, av, 4096);
+    return "";
 }
 
 // ---------------------------------------------------------------------------
-// macOS folder picker dialog via osascript
+// Linux folder picker dialog (no osascript on Linux — returns empty)
 // ---------------------------------------------------------------------------
 
 fn pick_folder_dialog() -> str {
-    let a0: str = "/usr/bin/osascript";
-    let a1: str = "-e";
-    let a2: str = "POSIX path of (choose folder)";
-    let av: []u64 = [ptr(a0), ptr(a1), ptr(a2), 0];
-    return capture_output(a0, av, 4096);
+    return "";
 }
 
 // ---------------------------------------------------------------------------
@@ -159,16 +151,16 @@ fn shell_output(cmd: str, max_len: i32) -> str {
 
 // ---------------------------------------------------------------------------
 // Non-blocking waitpid to reap zombie children
-// waitpid(-1, &st, WNOHANG=1)
+// wait4(-1, &st, WNOHANG=1, NULL) on Linux ARM64
 // ---------------------------------------------------------------------------
 
 fn waitpid_nohang() -> void {
     let st: i32 = 0;
     let sa: u64 = &st;
-    mov(x0, -1);
-    mov(x1, sa);
-    mov(x2, 1);
-    mov(x3, 0);
-    mov(x16, 0x2000007);  // SYS_wait4 on Darwin
+    mov(x0, -1);       // pid = -1 (any child)
+    mov(x1, sa);       // &status
+    mov(x2, 1);        // WNOHANG
+    mov(x3, 0);        // rusage = NULL
+    mov(x8, 260);      // SYS_wait4
     syscall();
 }
