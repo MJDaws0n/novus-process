@@ -20,3 +20,5 @@ See [`docs.md`](docs.md) for the full API reference.
 ```novus
 import lib/process process;
 ```
+
+The package imports its `std` and `file_io` dependencies automatically.
