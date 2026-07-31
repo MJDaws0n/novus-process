@@ -77,6 +77,9 @@ fn main(argc: i32, argv: u64) -> i32 {
     let out: str = shell_output("echo novus_test", 256);
     fails = fails + assert_eq_str("shell_output echo", out, "novus_test");
 
+    let inherited_path: str = shell_output('printf %s "$PATH"', 4096);
+    fails = fails + assert_true("shell_output inherits PATH", len(inherited_path) > 0);
+
     // ── capture_output (assembly: fork + pipe + execve + wait_pid) ──
     print_raw("\n--- capture_output ---\n");
     let echo_path: str = "/bin/echo";
